@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日一图 · 固定画幅</title>
+    <style>
+        :root {
+            --theme: #ff7eb3;
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --text: #f1f1f1;
+            --radius: 20px;
+            --trans: .5s cubic-bezier(.4, 0, .2, 1);
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{
+            height:100vh;display:flex;align-items:center;justify-content:center;
+            background:var(--bg);color:var(--text);font-family:'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+            user-select:none;
+        }
+        .card{
+            width:90vw;max-width:1000px;background:var(--surface);
+            border-radius:var(--radius);box-shadow:0 25px 50px -12px rgba(0,0,0,.55);
+            padding:35px 40px;display:flex;flex-direction:column;align-items:center;
+        }
+        h1{font-weight:300;font-size:clamp(1.6rem,3.5vw,2.5rem);margin-bottom:25px;letter-spacing:1px}
+        /* ①② 固定尺寸盒子 */
+        .img-box{
+            position:relative;width:100%;height:60vh;   /* 60% 屏幕高，可改 px */
+            border-radius:var(--radius);overflow:hidden;background:#000;
+        }
+        /* ③ 强制填满 */
+        #randomImage{
+            width:100%;height:100%;object-fit:cover;object-position:center;
+            opacity:0;transition:opacity var(--trans);
+        }
+        #randomImage.loaded{opacity:1}
+        .loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.2rem;z-index:2}
+        .loader.hide{opacity:0;pointer-events:none}
+        .controls{margin-top:30px;display:flex;gap:18px}
+        button{border:none;background:var(--theme);color:#fff;padding:12px 28px;border-radius:30px;font-size:1.05rem;cursor:pointer;transition:transform .2s,background .3s}
+        button:hover{transform:translateY(-3px);background:#ff5a9f}
+        .tips{margin-top:15px;font-size:.9rem;opacity:.55}
+        .error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;opacity:0;pointer-events:none;z-index:3}
+        .error.show{opacity:1;pointer-events:auto}
+        .error span{font-size:3.2rem}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>✨ 今日份的幸运图片 ✨</h1>
+        <div class="img-box">
+            <div class="loader">🌀</div>
+            <img id="randomImage" alt="随机图片">
+            <div class="error" id="error">
+                <span>😵</span>
+                <p>图片走丢了，试试刷新按钮</p>
+            </div>
+        </div>
+        <div class="controls">
+            <button id="refreshBtn">换一张</button>
+            <button id="autoBtn">自动放映</button>
+        </div>
+        <p class="tips">快捷键：空格切换 | ← → 手动前后</p>
+    </div>
+
+    <script>
+        const MIN = 1, MAX = 200;
+        const IMG_PATH = id => `https://raw.githubusercontent.com/fanyanbalin/img-api/refs/heads/main/img/${String(id).padStart(3,'0')}.webp`;
+        const imgEl = document.getElementById('randomImage');
+        const loader = document.querySelector('.loader');
+        const errorBox = document.getElementById('error');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const autoBtn = document.getElementById('autoBtn');
+        let current = Math.floor(Math.random()*(MAX-MIN+1))+MIN;
+        let autoTimer = null;
+
+        init();
+        function init(){
+            loadImage(current);
+            refreshBtn.onclick = () => loadImage(randomInt(MIN,MAX));
+            autoBtn.onclick = toggleAuto;
+            document.addEventListener('keydown',e=>{
+                if(e.key===' '){e.preventDefault();loadImage(randomInt(MIN,MAX))}
+                if(e.key==='ArrowLeft')prev();
+                if(e.key==='ArrowRight')next();
+            });
+        }
+        function loadImage(id){
+            loader.classList.remove('hide');
+            errorBox.classList.remove('show');
+            imgEl.classList.remove('loaded');
+            const t=new Image();
+            t.src=IMG_PATH(id);
+            t.onload=()=>{
+                imgEl.src=t.src;
+                imgEl.onload=()=>{
+                    loader.classList.add('hide');
+                    imgEl.classList.add('loaded');
+                    current=id;
+                };
+            };
+            t.onerror=()=>{loader.classList.add('hide');errorBox.classList.add('show');};
+        }
+        function prev(){current=current<=MIN?MAX:current-1;loadImage(current);}
+        function next(){current=current>=MAX?MIN:current+1;loadImage(current);}
+        function toggleAuto(){
+            if(autoTimer){clearInterval(autoTimer);autoTimer=null;autoBtn.textContent='自动放映';}
+            else{autoTimer=setInterval(next,3000);autoBtn.textContent='停止放映';}
+        }
+        function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+    </script>
+</body>
+</html>
